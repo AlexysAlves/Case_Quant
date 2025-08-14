@@ -1,0 +1,1 @@
+{'lookback_mom_days': 126, 'skip_last_days_for_mom': 21, 'donchian_high_days': 55, 'top_n': 20, 'fixed_stop_loss': 0.08, 'trailing_stop': 0.12, 'weights': (0.5, 0.3, 0.2)}
