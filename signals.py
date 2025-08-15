@@ -1,20 +1,65 @@
 import pandas as pd
 import numpy as np
 
-def compute_signals(prices: pd.DataFrame, params: dict) -> dict:
-    mom_lb = params['lookback_mom_days']
-    mom_skip = params['skip_last_days_for_mom']
-    don_n = params['donchian_high_days']
-    w_m, w_p, w_b = params['weights']
+INDICATOR_NAMES = [
+    'mom_12_1',
+    'mom_6_1',
+    'prox_52w',
+    'breakout_100',
+    'dist_sma200',
+    'low_vol_252',
+    'rsi_14'
+]
 
-    mom = prices.shift(mom_skip) / prices.shift(mom_lb) - 1.0
-    roll_max_252 = prices.rolling(mom_lb, min_periods=max(10, mom_lb//2)).max()
-    prox_52w = prices / roll_max_252
-    roll_max_don = prices.rolling(don_n, min_periods=max(10, don_n//2)).max()
-    breakout = (prices >= roll_max_don).astype(float)
+def _rsi(series: pd.Series, n: int = 14) -> pd.Series:
+    delta = series.diff()
+    up = delta.clip(lower=0)
+    down = -delta.clip(upper=0)
+    roll_up = up.ewm(alpha=1/n, adjust=False).mean()
+    roll_down = down.ewm(alpha=1/n, adjust=False).mean()
+    rs = roll_up / roll_down.replace(0, np.nan)
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
 
-    def xzs(x):
-        return (x - x.mean(skipna=True)) / x.std(skipna=True)
+def compute_indicators(prices: pd.DataFrame) -> dict:
+    roll252 = prices.rolling(252, min_periods=84)
+    roll126 = prices.rolling(126, min_periods=42)
+    roll100 = prices.rolling(100, min_periods=34)
+    roll200 = prices.rolling(200, min_periods=67)
 
-    score = xzs(mom) * w_m + xzs(prox_52w) * w_p + xzs(breakout) * w_b
-    return {'mom': mom, 'prox_52w': prox_52w, 'breakout': breakout, 'score': score}
+    mom_12_1 = prices.shift(21) / prices.shift(252) - 1.0
+    mom_6_1  = prices.shift(21) / prices.shift(126) - 1.0
+    prox_52w = prices / roll252.max()
+    breakout_100 = (prices >= roll100.max()).astype(float)
+    sma200 = roll200.mean()
+    dist_sma200 = prices / sma200
+    low_vol_252 = -prices.pct_change().rolling(252, min_periods=84).std()
+    rsi_14 = prices.apply(_rsi, n=14)
+
+    indicators = {
+        'mom_12_1': mom_12_1,
+        'mom_6_1': mom_6_1,
+        'prox_52w': prox_52w,
+        'breakout_100': breakout_100,
+        'dist_sma200': dist_sma200,
+        'low_vol_252': low_vol_252,
+        'rsi_14': rsi_14
+    }
+    return indicators
+
+def _xzs(df: pd.DataFrame) -> pd.DataFrame:
+    mean = df.mean(axis=1, skipna=True)
+    std = df.std(axis=1, skipna=True).replace(0, np.nan)
+    return (df.sub(mean, axis=0)).div(std, axis=0)
+
+def score_from_weights(indicators: dict, weights: dict) -> pd.DataFrame:
+    parts = []
+    for name, df in indicators.items():
+        w = float(weights.get(name, 0.0))
+        if w == 0.0:
+            continue
+        parts.append(_xzs(df) * w)
+    if not parts:
+        any_df = next(iter(indicators.values()))
+        return any_df * 0.0
+    return sum(parts)
