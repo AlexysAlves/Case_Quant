@@ -1,8 +1,5 @@
-
 import pandas as pd
 import numpy as np
-from pathlib import Path
-from typing import Tuple
 import config
 
 def load_prices() -> pd.DataFrame:
@@ -16,16 +13,14 @@ def load_ibov() -> pd.Series:
     cols = [c for c in df.columns if c.lower() != 'date']
     if not cols:
         raise ValueError('IBOV CSV must have a price column besides Date.')
-    price_col = cols[0]
-    s = df.set_index('Date')[price_col]
-    # Try robust numeric parsing: remove thousand separators and normalize decimal comma
+    s = df.set_index('Date')[cols[0]]
     if s.dtype == object:
         s = (
             s.astype(str)
-             .str.replace('\u00a0', '', regex=False)  # non-breaking space
+             .str.replace('\u00a0', '', regex=False)
              .str.replace(' ', '', regex=False)
-             .str.replace('.', '', regex=False)        # remove thousands dot
-             .str.replace(',', '.', regex=False)       # decimal comma -> dot
+             .str.replace('.', '', regex=False)
+             .str.replace(',', '.', regex=False)
         )
     s = pd.to_numeric(s, errors='coerce')
     return s
@@ -44,12 +39,8 @@ def clean_prices(prices: pd.DataFrame) -> pd.DataFrame:
     rets = prices.pct_change()
     bad = rets.columns[(rets.abs() > config.MAX_ABS_DAILY_RET_FOR_TICKER).any()]
     prices = prices.drop(columns=bad, errors='ignore')
-
     return prices
 
-def split_by_dates(df: pd.DataFrame, start: str, end: str) -> pd.DataFrame:
-    return df.loc[(df.index >= pd.to_datetime(start)) & (df.index <= pd.to_datetime(end))]
-
-def align_with_benchmark(prices: pd.DataFrame, ibov: pd.Series) -> Tuple[pd.DataFrame, pd.Series]:
+def align_with_benchmark(prices: pd.DataFrame, ibov: pd.Series):
     idx = prices.index.intersection(ibov.index)
     return prices.loc[idx], ibov.loc[idx]
