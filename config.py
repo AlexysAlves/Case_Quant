@@ -1,6 +1,6 @@
 from pathlib import Path
 
-DATA_DIR = Path('/mnt/data')
+DATA_DIR = Path('')
 
 # Input data (already uploaded by you)
 PRICES_CSV = DATA_DIR / 'precos_b3_202010-2024.csv'
@@ -21,12 +21,12 @@ TEST_START  = '2013-01-02'
 TEST_END    = '2024-12-31'
 
 # Strategy
-REB_FREQ = 'M'        # monthly rebalance
+REB_FREQ = 'ME'        # monthly rebalance
 INITIAL_CASH = 1_000_000.0
 SLIPPAGE_BPS = 0.0    # costs ignored per case
 TOP_N = 20
 FIXED_STOP_LOSS = 0.10   # 10%
-TRAILING_STOP = 0.15     # 15%
+# TRAILING_STOP = 0.15     # 15%
 
 # Genetic Algorithm
 GA_SEED = 42
@@ -36,5 +36,5 @@ GA_CROSSOVER_RATE = 0.8
 GA_MUTATION_RATE = 0.15
 GA_ELITISM = 2
 
-OUT_DIR = Path(str(Path(__file__).parent / 'outputs'))
+OUT_DIR = Path(str(Path(__file__).parent / 'saidas'))
 OUT_DIR.mkdir(parents=True, exist_ok=True)

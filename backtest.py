@@ -3,7 +3,7 @@ import numpy as np
 import math
 import config
 
-def monthly_rebalance_dates(index, freq='M'):
+def monthly_rebalance_dates(index, freq='ME'):
     return pd.date_range(index.min(), index.max(), freq=freq).intersection(index)
 
 def run_backtest(prices: pd.DataFrame, score: pd.DataFrame, top_n: int) -> dict:
@@ -34,9 +34,9 @@ def run_backtest(prices: pd.DataFrame, score: pd.DataFrame, top_n: int) -> dict:
             pos['running_peak'] = max(pos['running_peak'], p)
             dd_from_peak = (pos['running_peak'] - p) / pos['running_peak'] if pos['running_peak']>0 else 0.0
             loss_from_entry = (pos['entry_price'] - p) / pos['entry_price'] if pos['entry_price']>0 else 0.0
-            if dd_from_peak >= config.TRAILING_STOP:
-                to_close.append((tkr, p, 'TRAIL_STOP'))
-            elif loss_from_entry >= config.FIXED_STOP_LOSS:
+           # if dd_from_peak >= config.TRAILING_STOP:
+            #    to_close.append((tkr, p, 'TRAIL_STOP'))
+            if loss_from_entry >= config.FIXED_STOP_LOSS:
                 to_close.append((tkr, p, 'STOP_LOSS'))
         for tkr, p, why in to_close:
             if tkr in positions:
