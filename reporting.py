@@ -21,7 +21,7 @@ def export_stats_and_plots(strategy_pv, ibov_pv, trades_df, out_dir):
     plt.savefig(out_dir / 'curve_strategy_vs_ibov.png')
     plt.close()
 
-    # Drawdown chart (strategy)
+    # Drawdown chart
     dd = drawdown_series(strategy_pv)
     plt.figure()
     dd.plot()
